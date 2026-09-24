@@ -1,18 +1,17 @@
 """Text normalization for parsed PDF documents."""
 
-from __future__ import annotations
-
-import re
-
 from .models import ParsedDocument
 
 
 def clean_text(text: str) -> str:
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return "\n".join(
-        line.strip() for line in text.splitlines() if line.strip()
-    )
+    cleaned_lines = []
+
+    for line in text.splitlines():
+        clean_line = " ".join(line.split())
+        if clean_line:
+            cleaned_lines.append(clean_line)
+
+    return "\n".join(cleaned_lines)
 
 
 def clean_parsed_document(parsed_document: ParsedDocument) -> ParsedDocument:

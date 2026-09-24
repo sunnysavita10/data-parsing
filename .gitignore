@@ -49,3 +49,6 @@ Desktop.ini
 *.tmp
 *.temp
 ~$*
+
+# Generated pipeline results
+output/

@@ -1,7 +1,5 @@
 """End-to-end invoice workflow orchestration."""
 
-from __future__ import annotations
-
 import json
 
 from .cleaning import clean_parsed_document, get_complete_text
@@ -11,33 +9,27 @@ from .extraction import (
     extract_line_items_from_tables,
     extract_line_items_from_text,
 )
-from .models import PipelineResult
+from .output import save_result
 from .parsing import parse_pdf
-from .sources import DocumentSource, create_document_source
-from .storage import DocumentStorage, create_document_storage
+from .sources import create_document_source
+from .storage import create_document_storage
 
 
 class InvoicePipeline:
-    """Compose independently replaceable source, storage, and processing steps."""
-
-    def __init__(
-        self,
-        settings: Settings,
-        source: DocumentSource | None = None,
-        storage: DocumentStorage | None = None,
-    ) -> None:
+    def __init__(self, settings, source=None, storage=None):
         settings.validate()
         self.settings = settings
         self.source = source or create_document_source(settings)
         self.storage = storage or create_document_storage(settings)
 
-    def run(self) -> PipelineResult:
+    def run(self):
         print("\n1. DATA SOURCE")
-        print(
+        source_name = (
             f"Local Demo -> {self.settings.sample_pdf}"
             if self.settings.demo_mode
             else f"SharePoint -> {self.settings.sharepoint_file_path}"
         )
+        print(source_name)
 
         print("\n2. DATA FETCHING")
         pdf_bytes = self.source.fetch()
@@ -56,22 +48,24 @@ class InvoicePipeline:
 
         print("\n7. DATA EXTRACTION")
         complete_text = get_complete_text(parsed_document)
-        invoice_data = extract_invoice_fields(complete_text)
-        invoice_data["line_items"] = extract_line_items_from_tables(
+        invoice = extract_invoice_fields(complete_text)
+        invoice["line_items"] = extract_line_items_from_tables(
             parsed_document["tables"]
         ) or extract_line_items_from_text(complete_text)
 
-        result: PipelineResult = {
+        result = {
             "metadata": metadata,
-            "invoice": invoice_data,
+            "invoice": invoice,
             "parsed_pages": parsed_document["pages"],
             "parsed_tables": parsed_document["tables"],
         }
+
+        result["saved_output"] = save_result(result)
+
         print("\n========== FINAL STRUCTURED OUTPUT ==========\n")
-        print(json.dumps(invoice_data, indent=2, ensure_ascii=False))
+        print(json.dumps(invoice, indent=2, ensure_ascii=False))
         return result
 
 
-def process_invoice(settings: Settings | None = None) -> PipelineResult:
-    """Convenience entry point for scripts and notebooks."""
+def process_invoice(settings=None):
     return InvoicePipeline(settings or Settings.from_env()).run()

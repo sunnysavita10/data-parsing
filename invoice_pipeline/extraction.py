@@ -1,7 +1,5 @@
 """Rule-based extraction of structured invoice fields."""
 
-from __future__ import annotations
-
 import re
 
 from .models import InvoiceData, LineItem, ParsedTable
@@ -61,40 +59,42 @@ def _number(value: str) -> int | float:
 
 
 def extract_line_items_from_tables(tables: list[ParsedTable]) -> list[LineItem]:
-    """Extract line items from a table containing common invoice headers."""
     required = {"description", "qty", "rate", "line total"}
+
     for table in tables:
         rows = table.get("data") or []
         if not rows:
             continue
+
         headers = [str(cell or "").strip().lower() for cell in rows[0]]
         if not required.issubset(headers):
             continue
-        positions = {header: headers.index(header) for header in headers}
-        items: list[LineItem] = []
-        for row in rows[1:]:
-            try:
-                def value(header: str) -> str:
-                    position = positions.get(header)
-                    if position is None or position >= len(row):
-                        return ""
-                    return str(row[position] or "").strip()
 
-                description = value("description").replace("\n", " ")
+        items: list[LineItem] = []
+
+        for row in rows[1:]:
+            values = {
+                header: str(value or "").strip()
+                for header, value in zip(headers, row)
+            }
+
+            try:
                 items.append(
                     {
-                        "sku": value("sku") or None,
-                        "item": description,
-                        "quantity": _number(value("qty")),
-                        "uom": value("uom") or None,
-                        "unit_price": _number(value("rate")),
-                        "discount": value("disc") or None,
-                        "tax": value("gst") or None,
-                        "amount": _number(value("line total")),
+                        "sku": values.get("sku") or None,
+                        "item": values["description"].replace("\n", " "),
+                        "quantity": _number(values["qty"]),
+                        "uom": values.get("uom") or None,
+                        "unit_price": _number(values["rate"]),
+                        "discount": values.get("disc") or None,
+                        "tax": values.get("gst") or None,
+                        "amount": _number(values["line total"]),
                     }
                 )
-            except (IndexError, TypeError, ValueError):
+            except (KeyError, ValueError):
                 continue
+
         if items:
             return items
+
     return []

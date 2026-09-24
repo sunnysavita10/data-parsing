@@ -1,27 +1,14 @@
 """Application configuration loaded from environment variables."""
 
-from __future__ import annotations
-
 import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
-def _as_bool(value: str | None, *, default: bool) -> bool:
-    if value is None:
-        return default
-    normalized = value.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(f"Invalid boolean value: {value!r}")
+from dotenv import load_dotenv
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass
 class Settings:
-    """Runtime settings for local demo or SharePoint-to-S3 mode."""
-
     demo_mode: bool = True
     sample_pdf: Path = Path("sample_invoice.pdf")
     tenant_id: str = ""
@@ -35,12 +22,11 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
-        """Build settings from a .env file and process environment."""
-        from dotenv import load_dotenv
-
         load_dotenv()
+
         return cls(
-            demo_mode=_as_bool(os.getenv("DEMO_MODE"), default=True),
+            demo_mode=os.getenv("DEMO_MODE", "true").strip().lower()
+            in {"true", "1", "yes", "on"},
             sample_pdf=Path(os.getenv("SAMPLE_PDF", "sample_invoice.pdf")),
             tenant_id=os.getenv("TENANT_ID", ""),
             client_id=os.getenv("CLIENT_ID", ""),
@@ -57,7 +43,6 @@ class Settings:
         )
 
     def validate(self) -> None:
-        """Fail early when required local files or production values are missing."""
         if self.demo_mode:
             if not self.sample_pdf.is_file():
                 raise FileNotFoundError(f"Demo PDF not found: {self.sample_pdf}")

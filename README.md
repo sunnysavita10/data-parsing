@@ -14,7 +14,7 @@ flowchart TD
     MODE -->|Demo invoice| LOCAL[LocalPdfSource<br/>sample_invoice.pdf]
     MODE -->|Uploaded PDF| UPLOAD[BytesPdfSource<br/>in-memory upload]
 
-    NOTEBOOK[Jupyter notebook] --> SETTINGS[Settings.from_env]
+    INTEGRATION[Python integration] --> SETTINGS[Settings.from_env]
     SETTINGS --> ENV[.env configuration]
     SETTINGS --> CLOUD_MODE{DEMO_MODE}
     CLOUD_MODE -->|true| LOCAL
@@ -53,6 +53,11 @@ flowchart TD
     RESULT --> PARSED[Parsed pages and tables]
     RESULT --> META[Source metadata]
 
+    RESULT --> OUTPUT[output/run folder]
+    OUTPUT --> FULL_JSON[structured_data.json]
+    OUTPUT --> TABLES_JSON[tables.json]
+    OUTPUT --> TABLE_CSV[Individual table CSV files]
+
     INVOICE --> DASHBOARD[Streamlit result dashboard]
     ITEMS --> DASHBOARD
     PARSED --> DASHBOARD
@@ -69,8 +74,6 @@ flowchart TD
 ```mermaid
 flowchart LR
     APP[app.py] --> PIPELINE[pipeline.py]
-    NOTEBOOK[invoice_data_parsing_pipeline.ipynb] --> PIPELINE
-
     PIPELINE --> CONFIG[config.py]
     PIPELINE --> SOURCES[sources.py]
     PIPELINE --> STORAGE[storage.py]
@@ -124,9 +127,9 @@ sequenceDiagram
 ```text
 data-parsing/
 |-- app.py                              # Streamlit interface
-|-- invoice_data_parsing_pipeline.ipynb # teaching/demo notebook
 |-- sample_invoice.pdf                  # five-page synthetic invoice
 |-- requirements.txt                    # Python dependencies
+|-- output/                             # generated JSON and table CSV files
 |-- .env                                # local configuration and secrets
 |-- .env.example                        # safe configuration template
 |-- invoice_pipeline/
@@ -163,6 +166,26 @@ The Streamlit UI supports:
 - Structured line-item table
 - Extracted page text and detected tables
 - Metadata inspection and JSON download
+- Automatic structured JSON and table CSV persistence
+
+## Saved output
+
+Every successful pipeline run creates a timestamped folder:
+
+```text
+output/
+`-- INV-2026-1048_YYYYMMDD_HHMMSS_microseconds/
+    |-- structured_data.json
+    |-- tables.json
+    `-- tables/
+        |-- table_01_page_1.csv
+        |-- table_02_page_1.csv
+        `-- ...
+```
+
+`structured_data.json` contains metadata, invoice fields, line items, parsed
+page text, detected tables, and saved-file paths. `tables.json` contains all
+tables together, while the `tables` directory contains one CSV per table.
 
 ## Configuration
 
@@ -174,8 +197,8 @@ SAMPLE_PDF=sample_invoice.pdf
 ```
 
 For SharePoint and S3 processing, populate the Microsoft Entra ID, SharePoint,
-AWS, and S3 values in `.env`, then run the pipeline from the notebook with
-`DEMO_MODE=false`.
+AWS, and S3 values in `.env`, set `DEMO_MODE=false`, and initialize
+`InvoicePipeline` from a Python integration.
 
 Secrets stay in `.env`, which is excluded through `.gitignore`. Only
 `.env.example` should be committed.

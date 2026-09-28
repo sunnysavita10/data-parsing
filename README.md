@@ -1,176 +1,102 @@
 # Invoice Data Parsing Pipeline
 
-A modular, classroom-ready pipeline for:
+A simple Streamlit application that reads an invoice PDF, extracts structured
+data, and saves the result as JSON and CSV files.
 
-**Document Source -> Fetching -> Optional Ingestion -> PDF Parsing -> Cleaning -> Structured Extraction -> Streamlit Review**
-
-## Complete project flow
-
-```mermaid
-flowchart TD
-    USER([User]) --> UI[Streamlit UI<br/>app.py]
-
-    UI --> MODE{Document source}
-    MODE -->|Demo invoice| LOCAL[LocalPdfSource<br/>sample_invoice.pdf]
-    MODE -->|Uploaded PDF| UPLOAD[BytesPdfSource<br/>in-memory upload]
-
-    INTEGRATION[Python integration] --> SETTINGS[Settings.from_env]
-    SETTINGS --> ENV[.env configuration]
-    SETTINGS --> CLOUD_MODE{DEMO_MODE}
-    CLOUD_MODE -->|true| LOCAL
-    CLOUD_MODE -->|false| SHAREPOINT[SharePointSource]
-
-    SHAREPOINT --> GRAPH[Microsoft Graph API]
-    GRAPH --> RAW[Raw PDF bytes]
-    LOCAL --> RAW
-    UPLOAD --> RAW
-
-    RAW --> STORAGE{Storage adapter}
-    STORAGE -->|Demo| LOCAL_STORE[LocalStorage<br/>pass-through]
-    STORAGE -->|Upload| MEMORY[MemoryStorage<br/>no disk write]
-    STORAGE -->|Production| S3[S3Storage<br/>PDF + metadata]
-
-    LOCAL_STORE --> STORED[PDF bytes ready]
-    MEMORY --> STORED
-    S3 --> STORED
-
-    STORED --> PARSER[parsing.py<br/>PyMuPDF + pdfplumber]
-    PARSER --> PAGES[Page-wise text]
-    PARSER --> TABLES[Detected tables]
-    PARSER --> PDF_META[PDF metadata]
-
-    PAGES --> CLEANER[cleaning.py<br/>whitespace normalization]
-    CLEANER --> CLEAN_TEXT[Clean complete text]
-
-    CLEAN_TEXT --> FIELD_EXTRACT[Regex field extraction]
-    TABLES --> ITEM_EXTRACT[Table line-item extraction]
-
-    FIELD_EXTRACT --> RESULT[PipelineResult]
-    ITEM_EXTRACT --> RESULT
-    PDF_META --> RESULT
-    RESULT --> INVOICE[Invoice header fields]
-    RESULT --> ITEMS[Structured line items]
-    RESULT --> PARSED[Parsed pages and tables]
-    RESULT --> META[Source metadata]
-
-    RESULT --> OUTPUT[output/run folder]
-    OUTPUT --> FULL_JSON[structured_data.json]
-    OUTPUT --> TABLES_JSON[tables.json]
-    OUTPUT --> TABLE_CSV[Individual table CSV files]
-
-    INVOICE --> DASHBOARD[Streamlit result dashboard]
-    ITEMS --> DASHBOARD
-    PARSED --> DASHBOARD
-    META --> DASHBOARD
-
-    DASHBOARD --> OVERVIEW[Overview and metrics]
-    DASHBOARD --> DOC_TAB[Document text]
-    DASHBOARD --> TABLE_TAB[Detected tables]
-    DASHBOARD --> JSON[JSON preview and download]
-```
-
-## Architecture by module
+## How it works
 
 ```mermaid
 flowchart LR
-    APP[app.py] --> PIPELINE[pipeline.py]
-    PIPELINE --> CONFIG[config.py]
-    PIPELINE --> SOURCES[sources.py]
-    PIPELINE --> STORAGE[storage.py]
-    PIPELINE --> PARSING[parsing.py]
-    PIPELINE --> CLEANING[cleaning.py]
-    PIPELINE --> EXTRACTION[extraction.py]
-
-    PARSING --> MODELS[models.py]
-    CLEANING --> MODELS
-    EXTRACTION --> MODELS
-    PIPELINE --> MODELS
-
-    GENERATOR[scripts/generate_sample_invoice.py] --> SAMPLE[sample_invoice.pdf]
-    SAMPLE --> SOURCES
+    A[Select demo or upload PDF] --> B[Read PDF]
+    B --> C[Extract text and tables]
+    C --> D[Clean text]
+    D --> E[Extract invoice fields and line items]
+    E --> F[Save JSON and CSV files]
+    F --> G[Show results in Streamlit]
 ```
 
-## Processing sequence
+In simple terms:
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant UI as Streamlit UI
-    participant P as InvoicePipeline
-    participant S as DocumentSource
-    participant ST as DocumentStorage
-    participant PDF as PDF Parser
-    participant C as Cleaner
-    participant E as Extractor
-
-    User->>UI: Select demo or upload PDF
-    User->>UI: Click Run parsing pipeline
-    UI->>P: run()
-    P->>S: fetch()
-    S-->>P: PDF bytes
-    P->>ST: ingest(PDF bytes)
-    ST-->>P: Source metadata
-    P->>ST: read()
-    ST-->>P: Stored PDF bytes
-    P->>PDF: parse_pdf()
-    PDF-->>P: Pages, tables, PDF metadata
-    P->>C: clean_parsed_document()
-    C-->>P: Cleaned page text
-    P->>E: Extract header fields and line items
-    E-->>P: Structured invoice data
-    P-->>UI: PipelineResult
-    UI-->>User: Metrics, tables, text and JSON download
-```
+1. The user selects the sample invoice or uploads a PDF.
+2. The PDF is loaded as bytes in memory.
+3. PyMuPDF extracts page text and PDF metadata.
+4. pdfplumber extracts meaningful tables.
+5. The extracted text is cleaned.
+6. Invoice fields and line items are converted into structured data.
+7. The result is saved inside the `output` folder.
+8. Streamlit displays the invoice, text, tables, metadata, and JSON.
 
 ## Project structure
 
 ```text
 data-parsing/
-|-- app.py                              # Streamlit interface
-|-- sample_invoice.pdf                  # five-page synthetic invoice
-|-- requirements.txt                    # Python dependencies
-|-- output/                             # generated JSON and table CSV files
-|-- .env                                # local configuration and secrets
-|-- .env.example                        # safe configuration template
-|-- invoice_pipeline/
-|   |-- __init__.py                     # public package exports
-|   |-- config.py                       # environment settings and validation
-|   |-- sources.py                      # local, upload and SharePoint sources
-|   |-- storage.py                      # memory, local and S3 storage
-|   |-- parsing.py                      # PDF text, table and metadata parsing
-|   |-- cleaning.py                     # text preprocessing
-|   |-- extraction.py                   # invoice fields and line items
-|   |-- models.py                       # shared typed data contracts
-|   `-- pipeline.py                     # end-to-end orchestration
-`-- scripts/
-    `-- generate_sample_invoice.py      # reproducible sample generator
+|-- app.py                  # Streamlit user interface
+|-- sample_invoice.pdf      # Five-page sample invoice
+|-- requirements.txt        # Required Python packages
+|-- .env                    # Local configuration and secrets
+|-- .env.example            # Safe environment template
+|-- output/                 # Generated JSON and CSV results
+`-- invoice_pipeline/
+    |-- config.py           # Loads and validates .env settings
+    |-- sources.py          # Reads local, uploaded, or SharePoint PDFs
+    |-- storage.py          # Handles memory, local, or S3 storage
+    |-- parsing.py          # Extracts PDF text, tables, and metadata
+    |-- cleaning.py         # Removes unnecessary whitespace
+    |-- extraction.py       # Extracts invoice fields and line items
+    |-- output.py           # Saves structured results
+    |-- models.py           # Simple shared type names
+    `-- pipeline.py         # Runs all processing steps in order
 ```
 
-Each stage has one responsibility. Source and storage protocols make it possible
-to replace infrastructure without modifying parsing, cleaning, or extraction.
+## Run the application
 
-## Quick start
+Create and activate a virtual environment:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+python -m venv env
+.\env\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```powershell
 pip install -r requirements.txt
+```
+
+Start Streamlit:
+
+```powershell
 streamlit run app.py
 ```
 
-The Streamlit UI supports:
+## Available document sources
 
-- The bundled five-page demo invoice
-- PDF upload processed entirely in memory
-- Invoice overview and key metrics
-- Structured line-item table
-- Extracted page text and detected tables
-- Metadata inspection and JSON download
-- Automatic structured JSON and table CSV persistence
+The current Streamlit UI supports:
+
+- `Demo invoice` — reads `sample_invoice.pdf` from the project.
+- `Upload PDF` — processes an uploaded PDF in memory.
+
+The uploaded raw PDF is not saved to disk. Only its extracted result is saved.
+
+SharePoint and S3 code is also available in the backend, but it is not currently
+connected to a Streamlit option.
+
+## Extracted data
+
+The pipeline extracts:
+
+- Invoice number and date
+- Vendor and customer name
+- Total amount and currency
+- Product or service line items
+- SKU, quantity, UOM, rate, discount, tax, and line total
+- Page-wise PDF text
+- Meaningful tables
+- PDF and source metadata
 
 ## Saved output
 
-Every successful pipeline run creates a timestamped folder:
+Every successful run creates a separate timestamped folder:
 
 ```text
 output/
@@ -183,45 +109,29 @@ output/
         `-- ...
 ```
 
-`structured_data.json` contains metadata, invoice fields, line items, parsed
-page text, detected tables, and saved-file paths. `tables.json` contains all
-tables together, while the `tables` directory contains one CSV per table.
+- `structured_data.json` contains the complete parsed result.
+- `tables.json` contains all detected tables together.
+- The `tables` directory contains one CSV file per meaningful table.
 
-## Configuration
+The `output` directory is excluded from Git because it can contain generated or
+customer-specific data.
 
-Local UI usage works with:
+## Local configuration
+
+For demo and upload processing, `.env` only needs:
 
 ```dotenv
 DEMO_MODE=true
 SAMPLE_PDF=sample_invoice.pdf
 ```
 
-For SharePoint and S3 processing, populate the Microsoft Entra ID, SharePoint,
-AWS, and S3 values in `.env`, set `DEMO_MODE=false`, and initialize
-`InvoicePipeline` from a Python integration.
+Keep real credentials inside `.env`. The file is excluded from Git. Use
+`.env.example` only as a safe configuration template.
 
-Secrets stay in `.env`, which is excluded through `.gitignore`. Only
-`.env.example` should be committed.
+## Current limitations
 
-## Sample document coverage
-
-The bundled invoice contains five pages of synthetic enterprise data:
-
-- Supplier and customer identity, addresses, GSTIN and PAN
-- Purchase order, contract, challan and e-invoice references
-- Ten products and services with SKU, quantity, UOM, rate and discount
-- HSN/SAC-wise CGST and SGST reconciliation
-- Shipping, GRN, delivery and installation events
-- Payment milestones and masked remittance information
-- Commercial terms, approvals, compliance controls and audit metadata
-
-Regenerate it when needed:
-
-```powershell
-python scripts/generate_sample_invoice.py
-```
-
-## Teaching scope
-
-The project intentionally stops at structured extracted data. Chunking,
-embeddings, vector search and downstream LLM processing are not implemented.
+- Scanned image-only PDFs require OCR, which is not implemented yet.
+- Header fields are extracted using regular expressions.
+- Line-item tables must contain recognizable column names such as
+  `Description`, `Qty`, `Rate`, and `Line total`.
+- The Streamlit UI currently processes only the demo invoice or uploaded PDFs.

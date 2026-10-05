@@ -6,9 +6,9 @@ configuration and extraction can be used without importing PDF dependencies.
 
 from typing import Any
 
-from .config import Settings
+from .config import InvoiceConfig
 
-__all__ = ["InvoicePipeline", "Settings", "process_invoice"]
+__all__ = ["InvoiceConfig", "InvoicePipeline", "process_invoice"]
 
 
 def __getattr__(name: str) -> Any:

@@ -1,4 +1,4 @@
-"""Document sources for local demo and Microsoft SharePoint."""
+"""Step 1: Read a PDF from local storage, upload, or SharePoint."""
 
 from urllib.parse import quote
 
@@ -7,12 +7,13 @@ import requests
 
 
 class LocalPdfSource:
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self, config):
+        self.config = config
+        self.description = f"Local Demo -> {config.sample_pdf}"
 
     def fetch(self):
-        pdf_bytes = self.settings.sample_pdf.read_bytes()
-        print(f"[OK] Demo file loaded: {self.settings.sample_pdf}")
+        pdf_bytes = self.config.sample_pdf.read_bytes()
+        print(f"[OK] Demo file loaded: {self.config.sample_pdf}")
         return pdf_bytes
 
 
@@ -20,6 +21,7 @@ class BytesPdfSource:
     def __init__(self, pdf_bytes, filename):
         self.pdf_bytes = pdf_bytes
         self.filename = filename
+        self.description = f"Streamlit Upload -> {filename}"
 
     def fetch(self):
         print(f"[OK] Uploaded file loaded: {self.filename}")
@@ -27,14 +29,15 @@ class BytesPdfSource:
 
 
 class SharePointSource:
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self, config):
+        self.config = config
+        self.description = f"SharePoint -> {config.sharepoint_file_path}"
 
     def get_access_token(self):
         app = msal.ConfidentialClientApplication(
-            client_id=self.settings.client_id,
-            client_credential=self.settings.client_secret,
-            authority=f"https://login.microsoftonline.com/{self.settings.tenant_id}",
+            client_id=self.config.client_id,
+            client_credential=self.config.client_secret,
+            authority=f"https://login.microsoftonline.com/{self.config.tenant_id}",
         )
 
         token_response = app.acquire_token_for_client(
@@ -48,10 +51,10 @@ class SharePointSource:
         return str(token_response["access_token"])
 
     def fetch(self):
-        encoded_path = quote(self.settings.sharepoint_file_path, safe="/")
+        encoded_path = quote(self.config.sharepoint_file_path, safe="/")
         url = (
             "https://graph.microsoft.com/v1.0/"
-            f"drives/{self.settings.drive_id}/root:/{encoded_path}:/content"
+            f"drives/{self.config.drive_id}/root:/{encoded_path}:/content"
         )
 
         response = requests.get(
@@ -65,8 +68,8 @@ class SharePointSource:
         return response.content
 
 
-def create_document_source(settings):
-    if settings.demo_mode:
-        return LocalPdfSource(settings)
+def create_document_source(config):
+    if config.demo_mode:
+        return LocalPdfSource(config)
 
-    return SharePointSource(settings)
+    return SharePointSource(config)

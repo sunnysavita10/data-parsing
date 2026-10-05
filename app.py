@@ -4,17 +4,17 @@ import json
 
 import streamlit as st
 
-from invoice_pipeline import InvoicePipeline, Settings
-from invoice_pipeline.sources import BytesPdfSource
-from invoice_pipeline.storage import MemoryStorage
+from invoice_pipeline import InvoiceConfig, InvoicePipeline
+from invoice_pipeline.step_01_sources import BytesPdfSource
+from invoice_pipeline.step_02_storage import MemoryStorage
 
 
 st.set_page_config(page_title="Invoice Parser", page_icon="📄", layout="wide")
 
 
 def run_pipeline(source_mode, uploaded_file):
-    settings = Settings.from_env()
-    settings.demo_mode = True
+    config = InvoiceConfig()
+    config.demo_mode = True
 
     if source_mode == "Upload PDF":
         if uploaded_file is None:
@@ -26,9 +26,9 @@ def run_pipeline(source_mode, uploaded_file):
 
         source = BytesPdfSource(pdf_bytes, uploaded_file.name)
         storage = MemoryStorage(uploaded_file.name)
-        return InvoicePipeline(settings, source, storage).run()
+        return InvoicePipeline(config, source, storage).run()
 
-    return InvoicePipeline(settings).run()
+    return InvoicePipeline(config).run()
 
 
 st.title("📄 Invoice Intelligence Workspace")
@@ -62,6 +62,7 @@ result = st.session_state.get("result")
 if not result:
     st.info("Select a document source and run the pipeline.")
 else:
+    result = result.model_dump(mode="json")
     invoice = result["invoice"]
     line_items = invoice["line_items"]
 

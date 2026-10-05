@@ -8,23 +8,25 @@ data, and saves the result as JSON and CSV files.
 ```mermaid
 flowchart LR
     A[Select demo or upload PDF] --> B[Read PDF]
-    B --> C[Extract text and tables]
-    C --> D[Clean text]
-    D --> E[Extract invoice fields and line items]
-    E --> F[Save JSON and CSV files]
-    F --> G[Show results in Streamlit]
+    B --> C[Keep PDF temporarily in memory]
+    C --> D[Extract text and tables]
+    D --> E[Clean text]
+    E --> F[Extract invoice fields and line items]
+    F --> G[Save JSON and CSV files]
+    G --> H[Show results in Streamlit]
 ```
 
 In simple terms:
 
 1. The user selects the sample invoice or uploads a PDF.
-2. The PDF is loaded as bytes in memory.
-3. PyMuPDF extracts page text and PDF metadata.
-4. pdfplumber extracts meaningful tables.
-5. The extracted text is cleaned.
-6. Invoice fields and line items are converted into structured data.
-7. The result is saved inside the `output` folder.
-8. Streamlit displays the invoice, text, tables, metadata, and JSON.
+2. The PDF is stored temporarily as bytes in memory.
+3. The pipeline reads the PDF bytes back from memory.
+4. PyMuPDF extracts page text and PDF metadata.
+5. pdfplumber extracts meaningful tables.
+6. The extracted text is cleaned.
+7. Invoice fields and line items are converted into structured data.
+8. The result is saved inside the `output` folder.
+9. Streamlit displays the invoice, text, tables, metadata, and JSON.
 
 ## Project structure
 
@@ -37,14 +39,12 @@ data-parsing/
 |-- .env.example            # Safe environment template
 |-- output/                 # Generated JSON and CSV results
 `-- invoice_pipeline/
-    |-- config.py           # Loads and validates .env settings
-    |-- sources.py          # Reads local, uploaded, or SharePoint PDFs
-    |-- storage.py          # Handles memory, local, or S3 storage
-    |-- parsing.py          # Extracts PDF text, tables, and metadata
-    |-- cleaning.py         # Removes unnecessary whitespace
-    |-- extraction.py       # Extracts invoice fields and line items
-    |-- output.py           # Saves structured results
+    |-- config.py           # Loads values from the .env file
     |-- models.py           # Simple shared type names
+    |-- step_01_sources.py  # Reads local, uploaded, or SharePoint PDFs
+    |-- step_02_storage.py  # Temporarily stores PDF bytes in memory
+    |-- step_03_parsing.py  # Parses, cleans, and extracts invoice data
+    |-- step_04_output.py   # Saves structured results
     `-- pipeline.py         # Runs all processing steps in order
 ```
 
@@ -78,8 +78,9 @@ The current Streamlit UI supports:
 
 The uploaded raw PDF is not saved to disk. Only its extracted result is saved.
 
-SharePoint and S3 code is also available in the backend, but it is not currently
-connected to a Streamlit option.
+SharePoint reading is available in the backend, but it is not currently
+connected to a Streamlit option. A PDF fetched from SharePoint is also processed
+through temporary memory storage.
 
 ## Extracted data
 

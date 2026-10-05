@@ -136,3 +136,26 @@ Keep real credentials inside `.env`. The file is excluded from Git. Use
 - Line-item tables must contain recognizable column names such as
   `Description`, `Qty`, `Rate`, and `Line total`.
 - The Streamlit UI currently processes only the demo invoice or uploaded PDFs.
+
+## Environment Setup
+
+If `uv` is not installed on your system, install it first:
+
+```bash
+pip install uv
+
+Check the available Python versions:
+uv python list
+
+Create a virtual environment using Python 3.11 or above:
+uv venv env --python <python-version>
+
+Activate the virtual environment.
+Windows
+env\Scripts\activate
+
+macOS / Linux
+source env/bin/activate
+
+Install all project dependencies:
+uv pip install -r requirements.txt

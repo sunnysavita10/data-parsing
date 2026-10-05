@@ -1,5 +1,6 @@
 msal
 requests
+boto3
 pymupdf
 pdfplumber
 python-dotenv

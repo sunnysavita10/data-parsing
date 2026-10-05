@@ -21,3 +21,8 @@ class InvoiceConfig:
         self.sharepoint_file_path = os.getenv(
             "SHAREPOINT_FILE_PATH", "Finance Documents/invoice_101.pdf"
         )
+
+        self.s3_bucket_name = os.getenv("S3_BUCKET_NAME", "")
+        self.s3_object_key = os.getenv(
+            "S3_OBJECT_KEY", "invoices/invoice_101.pdf"
+        )

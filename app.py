@@ -9,7 +9,7 @@ from invoice_pipeline.step_01_sources import BytesPdfSource
 from invoice_pipeline.step_02_storage import MemoryStorage
 
 
-SHAREPOINT_S3_OPTION = "SharePoint + Amazon S3 (Coming soon)"
+SHAREPOINT_S3_OPTION = "SharePoint + Amazon S3"
 
 
 st.set_page_config(page_title="Invoice Parser", page_icon="📄", layout="wide")

@@ -5,7 +5,7 @@ import json
 import streamlit as st
 
 from invoice_pipeline import InvoiceConfig, InvoicePipeline
-from invoice_pipeline.step_01_sources import BytesPdfSource
+from invoice_pipeline.step_01_sources import PdfSource
 from invoice_pipeline.step_02_storage import MemoryStorage
 
 
@@ -30,7 +30,11 @@ def run_pipeline(source_mode, uploaded_file):
         if not pdf_bytes.startswith(b"%PDF"):
             raise ValueError("Please upload a valid PDF file.")
 
-        source = BytesPdfSource(pdf_bytes, uploaded_file.name)
+        source = PdfSource(
+            filename=uploaded_file.name,
+            pdf_bytes=pdf_bytes,
+            source_name="Streamlit Upload",
+        )
         storage = MemoryStorage(uploaded_file.name)
         return InvoicePipeline(config, source, storage).run()
 

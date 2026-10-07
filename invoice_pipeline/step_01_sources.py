@@ -1,31 +1,28 @@
 """Step 1: Read a PDF from local storage, upload, or SharePoint."""
 
+from pathlib import Path
 from urllib.parse import quote
 
 import msal
 import requests
 
 
-class LocalPdfSource:
-    def __init__(self, config):
-        self.config = config
-        self.description = f"Local Demo -> {config.sample_pdf}"
+class PdfSource:
+    """Read a local PDF or return PDF bytes received from Streamlit."""
 
-    def fetch(self):
-        pdf_bytes = self.config.sample_pdf.read_bytes()
-        print(f"[OK] Demo file loaded: {self.config.sample_pdf}")
-        return pdf_bytes
-
-
-class BytesPdfSource:
-    def __init__(self, pdf_bytes, filename):
+    def __init__(self, filename, pdf_bytes=None, source_name="Local Demo"):
+        self.filename = str(filename)
         self.pdf_bytes = pdf_bytes
-        self.filename = filename
-        self.description = f"Streamlit Upload -> {filename}"
+        self.description = f"{source_name} -> {filename}"
 
     def fetch(self):
-        print(f"[OK] Uploaded file loaded: {self.filename}")
-        return self.pdf_bytes
+        if self.pdf_bytes is not None:
+            print(f"[OK] Uploaded file loaded: {self.filename}")
+            return self.pdf_bytes
+
+        pdf_bytes = Path(self.filename).read_bytes()
+        print(f"[OK] Demo file loaded: {self.filename}")
+        return pdf_bytes
 
 
 class SharePointSource:
@@ -70,6 +67,6 @@ class SharePointSource:
 
 def create_document_source(config):
     if config.demo_mode:
-        return LocalPdfSource(config)
+        return PdfSource(config.sample_pdf)
 
     return SharePointSource(config)

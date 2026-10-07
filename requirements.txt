@@ -1,8 +1,23 @@
+# Authenticates the application with Microsoft Entra ID for SharePoint access.
 msal
+
+# Sends HTTP requests to download the invoice PDF from Microsoft Graph.
 requests
+
+# Uploads and reads production invoice PDFs from Amazon S3.
 boto3
+
+# Extracts page text and PDF metadata.
 pymupdf
+
+# Extracts tables from PDF pages.
 pdfplumber
+
+# Loads configuration values and secrets from the local .env file.
 python-dotenv
+
+# Provides the web interface for uploading and viewing invoices.
 streamlit
+
+# Defines and validates the structured invoice data models.
 pydantic>=2.0,<3.0

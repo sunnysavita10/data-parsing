@@ -9,10 +9,16 @@ from invoice_pipeline.step_01_sources import BytesPdfSource
 from invoice_pipeline.step_02_storage import MemoryStorage
 
 
+SHAREPOINT_S3_OPTION = "SharePoint + Amazon S3 (Coming soon)"
+
+
 st.set_page_config(page_title="Invoice Parser", page_icon="📄", layout="wide")
 
 
 def run_pipeline(source_mode, uploaded_file):
+    if source_mode == SHAREPOINT_S3_OPTION:
+        raise ValueError("SharePoint and Amazon S3 processing is coming soon.")
+
     config = InvoiceConfig()
     config.demo_mode = True
 
@@ -36,15 +42,27 @@ st.write("Upload an invoice or use the demo PDF to extract structured data.")
 
 with st.sidebar:
     st.header("Invoice Parser")
-    source_mode = st.radio("Document source", ["Demo invoice", "Upload PDF"])
+    source_mode = st.radio(
+        "Document source",
+        ["Demo invoice", "Upload PDF", SHAREPOINT_S3_OPTION],
+    )
 
     uploaded_file = None
     if source_mode == "Upload PDF":
         uploaded_file = st.file_uploader("Choose a PDF", type="pdf")
+    elif source_mode == SHAREPOINT_S3_OPTION:
+        st.info(
+            "The SharePoint to Amazon S3 production flow is prepared, "
+            "but it is not enabled in the Streamlit interface yet."
+        )
     else:
         st.info("Using sample_invoice.pdf")
 
-    run_clicked = st.button("Run parsing pipeline", type="primary")
+    run_clicked = st.button(
+        "Run parsing pipeline",
+        type="primary",
+        disabled=source_mode == SHAREPOINT_S3_OPTION,
+    )
 
 
 if run_clicked:

@@ -179,9 +179,10 @@ streamlit run app.py
   memory.
 - **Upload PDF:** accepts a PDF from the Streamlit interface and keeps it
   temporarily in memory.
-- **SharePoint:** the backend fetches a PDF through Microsoft Graph API and
-  stores it in Amazon S3 before parsing. This source is not currently exposed
-  in the Streamlit interface.
+- **SharePoint + Amazon S3:** appears in the Streamlit source list as a
+  **Coming soon** option. Its Run button remains disabled until the production
+  connection is enabled. The backend flow is prepared to fetch through
+  Microsoft Graph API and store the PDF in Amazon S3 before parsing.
 
 ## Extracted data
 
